@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ems.system.mapper.CalificacionMapper">
+
+    <select id="queryCalificacionTable" resultType="com.ems.system.entity.Calificacion">
+        SELECT
+            id,
+            matricula_materia_id AS matriculaMateriaId,
+            actividad_evaluacion_id AS actividadEvaluacionId,
+            nota,
+            observacion,
+            registrado_por AS registradoPor,
+            fecha_registro AS fechaRegistro
+        FROM academico.calificacion
+        <where>
+            <if test="blurry != null and blurry != ''">
+                observacion ILIKE CONCAT('%', #{blurry}, '%')
+            </if>
+        </where>
+        ORDER BY fecha_registro DESC, id DESC
+    </select>
+
+</mapper>

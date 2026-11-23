@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ems.system.mapper.ReporteAcademicoMapper">
+
+
+    <!-- Nomina de estudiantes activos de una asignacion -->
+    <select id="listarNomina" resultType="com.ems.system.entity.dto.NominaDocenteDto">
+        SELECT
+            mm.id AS matriculaMateriaId,
+            e.codigo_estudiante AS codigoEstudiante,
+            pe.documento AS documento,
+            pe.apellido_paterno AS apellidoPaterno,
+            pe.apellido_materno AS apellidoMaterno,
+            pe.nombres AS nombres,
+            mm.estado AS estado
+        FROM academico.matricula_materia mm
+        INNER JOIN academico.matricula ma ON ma.id = mm.matricula_id
+        INNER JOIN academico.estudiante e ON e.id = ma.estudiante_id
+        INNER JOIN academico.persona pe ON pe.id = e.persona_id
+        WHERE mm.asignacion_docente_id = #{asignacionId}
+          AND ma.estado = 'ACTIVA'
+        ORDER BY pe.apellido_paterno, pe.apellido_materno, pe.nombres, mm.id
+    </select>
+
+    <!-- Notas registradas en una asignacion (opcionalmente de un solo periodo) -->
+    <select id="listarNotas" resultType="com.ems.system.entity.dto.NotaDocenteDto">
+        SELECT
+            e.codigo_estudiante AS codigoEstudiante,
+            pe.apellido_paterno AS apellidoPaterno,
+            pe.apellido_materno AS apellidoMaterno,
+            pe.nombres AS nombres,
+            pr.nombre AS periodo,
+            ae.nombre AS actividad,
+            ae.ponderacion AS ponderacion,
+            ae.nota_maxima AS notaMaxima,
+            ca.nota AS nota,
+            ca.observacion AS observacion
+        FROM academico.calificacion ca
+        INNER JOIN academico.actividad_evaluacion ae ON ae.id = ca.actividad_evaluacion_id
+        INNER JOIN academico.periodo_evaluacion pr ON pr.id = ae.periodo_evaluacion_id
+        INNER JOIN academico.matricula_materia mm ON mm.id = ca.matricula_materia_id
+        INNER JOIN academico.matricula ma ON ma.id = mm.matricula_id
+        INNER JOIN academico.estudiante e ON e.id = ma.estudiante_id
+        INNER JOIN academico.persona pe ON pe.id = e.persona_id
+        WHERE ae.asignacion_docente_id = #{asignacionId}
+        <if test="periodoId != null">
+            AND ae.periodo_evaluacion_id = #{periodoId}
+        </if>
+        ORDER BY pe.apellido_paterno, pe.apellido_materno, pe.nombres, pr.orden, ae.nombre
+    </select>
+
+    <!-- Boletin del estudiante: lee de la vista academico.v_nota_periodo (script 05) -->
+    <select id="listarBoletin" resultType="com.ems.system.entity.dto.BoletinEstudianteDto">
+        SELECT
+            v.anio AS gestion,
+            v.materia AS materia,
+            v.orden AS orden,
+            v.periodo AS periodo,
+            v.nota_periodo AS notaPeriodo,
+            v.ponderacion_total AS ponderacionTotal,
+            v.completo AS completo
+        FROM academico.v_nota_periodo v
+        WHERE v.estudiante_id = #{estudianteId}
+        <if test="gestion != null">
+            AND v.anio = #{gestion}
+        </if>
+        ORDER BY v.anio DESC, v.materia, v.orden
+    </select>
+
+    <!-- Matricula por curso (administracion / direccion) -->
+    <select id="listarMatricula" resultType="com.ems.system.entity.dto.MatriculaCursoDto">
+        SELECT
+            ue.nombre AS unidadEducativa,
+            g.anio AS gestion,
+            gr.nombre AS grado,
+            gr.numero AS numeroGrado,
+            pa.nombre AS paralelo,
+            c.turno AS turno,
+            c.cupo AS cupo,
+            COUNT(ma.id) FILTER (WHERE ma.estado = 'ACTIVA') AS matriculadosActivos,
+            COUNT(ma.id) AS matriculasTotal
+        FROM academico.curso c
+        INNER JOIN academico.unidad_educativa ue ON ue.id = c.unidad_educativa_id
+        INNER JOIN academico.gestion g ON g.id = c.gestion_id
+        INNER JOIN academico.grado gr ON gr.id = c.grado_id
+        INNER JOIN academico.paralelo pa ON pa.id = c.paralelo_id
+        LEFT JOIN academico.matricula ma ON ma.curso_id = c.id
+        <where>
+            <if test="gestion != null">
+                g.anio = #{gestion}
+            </if>
+            <if test="unidadEducativaId != null">
+                AND c.unidad_educativa_id = #{unidadEducativaId}
+            </if>
+        </where>
+        GROUP BY ue.nombre, g.anio, gr.numero, gr.nombre, pa.nombre, c.turno, c.cupo
+        ORDER BY ue.nombre, g.anio DESC, gr.numero, pa.nombre
+    </select>
+
+    <!-- 1 si la asignacion pertenece al docente, 0 si no -->
+    <select id="contarAsignacionDeDocente" resultType="int">
+        SELECT COUNT(*)
+        FROM academico.asignacion_docente
+        WHERE id = #{asignacionId}
+          AND docente_id = #{docenteId}
+    </select>
+
+</mapper>

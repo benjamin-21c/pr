@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ems.system.mapper.EstudianteMapper">
+
+    <select id="queryEstudianteTable" resultType="com.ems.system.entity.Estudiante">
+        SELECT
+            id,
+            persona_id AS personaId,
+            codigo_estudiante AS codigoEstudiante,
+            fecha_ingreso AS fechaIngreso,
+            activo
+        FROM academico.estudiante
+        <where>
+            <if test="blurry != null and blurry != ''">
+                codigo_estudiante ILIKE CONCAT('%', #{blurry}, '%')
+            </if>
+        </where>
+        ORDER BY id DESC
+    </select>
+
+</mapper>
